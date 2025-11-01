@@ -10,12 +10,12 @@ import { authenticateToken, authorizeRoles } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Rutas públicas (para el sistema de triage)
+// Rutas públicas (para el sistema de triage y dashboard)
 router.post('/', createPatient);
 router.get('/identification/:identificacion', getPatientByIdentification);
+router.get('/', getAllPatients);
 
 // Rutas protegidas
-router.get('/', authenticateToken, getAllPatients);
 router.put('/:id', authenticateToken, authorizeRoles('ADMIN', 'MEDICO', 'ENFERMERO'), updatePatient);
 router.delete('/:id', authenticateToken, authorizeRoles('ADMIN'), deletePatient);
 
