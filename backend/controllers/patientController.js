@@ -68,30 +68,34 @@ export const getPatientByIdentification = async (req, res) => {
 export const getAllPatients = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = '' } = req.query;
-    
+
     const query = search ? {
       $or: [
         { nombre: { $regex: search, $options: 'i' } },
         { identificacion: { $regex: search, $options: 'i' } }
       ]
     } : {};
-    
+
     const patients = await Patient.find(query)
       .sort({ createdAt: -1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit);
-    
+      .skip((page - 1) * limit)
+      .lean();
+
     const total = await Patient.countDocuments(query);
-    
+
+    console.log('Pacientes encontrados:', patients.length);
+    console.log('Primer paciente:', patients[0]);
+
     res.json({
       success: true,
       data: patients,
       pagination: {
-        currentPage: page,
+        currentPage: parseInt(page),
         totalPages: Math.ceil(total / limit),
         totalRecords: total,
-        hasNext: page < Math.ceil(total / limit),
-        hasPrev: page > 1
+        hasNext: parseInt(page) < Math.ceil(total / limit),
+        hasPrev: parseInt(page) > 1
       }
     });
   } catch (error) {

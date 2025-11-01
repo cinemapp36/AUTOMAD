@@ -15,7 +15,7 @@ Editar el archivo `.env` con tus credenciales de MongoDB:
 
 ```
 MONGODB_URI=mongodb://localhost:27017/saviser
-PORT=5000
+PORT=3000
 JWT_SECRET=tu_clave_secreta_muy_segura_aqui_cambiar_en_produccion
 NODE_ENV=development
 ```
@@ -31,7 +31,7 @@ Para desarrollo con auto-reload:
 npm run dev
 ```
 
-El servidor se ejecutará en `http://localhost:5000`
+El servidor se ejecutará en `http://localhost:3000`
 
 ## Endpoints disponibles
 
