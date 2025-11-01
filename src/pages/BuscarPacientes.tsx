@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, User, Calendar, FileText, Eye, CreditCard as Edit, Trash2, ExternalLink } from 'lucide-react';
-import { endpoints } from '../config/api';
+import { patientService } from '../services/api';
 
 interface Patient {
   _id: string;
@@ -46,22 +46,20 @@ function BuscarPacientes() {
   const fetchPatients = async (page: number = 1, search: string = '') => {
     setIsLoading(true);
     setError(null);
-    
-    try {
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-        ...(search && { search })
-      });
 
-      const response = await fetch(`${endpoints.patients.getAll}?${queryParams}`);
-      
-      if (!response.ok) {
-        throw new Error('Error al obtener los pacientes');
+    try {
+      const params: any = {
+        page: page.toString(),
+        limit: '10'
+      };
+
+      if (search) {
+        params.search = search;
       }
 
-      const data = await response.json();
-      
+      const response = await patientService.getAll(params);
+      const data = response.data;
+
       if (data.success) {
         setPatients(data.data);
         setPagination(data.pagination);
@@ -113,20 +111,9 @@ function BuscarPacientes() {
   const handleDeletePatient = async (patient: Patient) => {
     if (window.confirm(`¿Está seguro de eliminar al paciente ${patient.nombre}?`)) {
       try {
-        const response = await fetch(endpoints.patients.delete(patient._id), {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-
-        if (response.ok) {
-          // Recargar la lista de pacientes
-          fetchPatients(currentPage, searchTerm);
-          alert('Paciente eliminado exitosamente');
-        } else {
-          throw new Error('Error al eliminar el paciente');
-        }
+        await patientService.delete(patient._id);
+        fetchPatients(currentPage, searchTerm);
+        alert('Paciente eliminado exitosamente');
       } catch (error) {
         console.error('Error deleting patient:', error);
         alert('Error al eliminar el paciente');

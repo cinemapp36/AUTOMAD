@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Activity, FileText, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
-import { endpoints } from '../config/api';
+import { patientService, triageService } from '../services/api';
 
 interface Stats {
   totalPacientes: number;
@@ -41,37 +41,31 @@ function Inicio() {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // Obtener estadísticas de pacientes
-      const patientsResponse = await fetch(`${endpoints.patients.getAll}?limit=1`);
-      const patientsData = await patientsResponse.json();
+      const patientsResponse = await patientService.getAll({ limit: 1 });
+      const patientsData = patientsResponse.data;
 
-      // Obtener estadísticas de triage
-      const triageStatsResponse = await fetch(endpoints.triage.getStats);
-      const triageStatsData = await triageStatsResponse.json();
+      const triageStatsResponse = await triageService.getStats();
+      const triageStatsData = triageStatsResponse.data;
 
-      // Obtener evaluaciones recientes
-      const recentTriageResponse = await fetch(`${endpoints.triage.getAll}?limit=4`);
-      const recentTriageData = await recentTriageResponse.json();
+      const recentTriageResponse = await triageService.getAll({ limit: 4 });
+      const recentTriageData = recentTriageResponse.data;
 
       if (patientsData.success && triageStatsData.success && recentTriageData.success) {
-        // Calcular estadísticas
         const totalPacientes = patientsData.pagination?.totalRecords || 0;
         const totalEvaluations = triageStatsData.data?.totalEvaluations || 0;
-        
-        // Calcular evaluaciones de hoy
+
         const today = new Date().toISOString().split('T')[0];
         const evaluacionesHoy = triageStatsData.data?.dailyStats?.find(
           (stat: any) => stat._id === today
         )?.count || 0;
-        
-        // Calcular pendientes y emergencias
+
         const statusStats = triageStatsData.data?.statusStats || [];
         const triagesPendientes = statusStats.find(
           (stat: any) => stat._id === 'PENDIENTE'
         )?.count || 0;
-        
+
         const levelStats = triageStatsData.data?.levelStats || [];
         const emergencias = levelStats.filter(
           (stat: any) => stat._id === 'I' || stat._id === 'II'

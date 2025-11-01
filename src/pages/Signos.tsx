@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { endpoints } from '../config/api';
+import { patientService, triageService } from '../services/api';
 
 interface PatientData {
   identificacion: string;
@@ -122,50 +122,32 @@ function Signos() {
     setTriageResult(triage);
 
     try {
-      // Primero, verificar si el paciente ya existe o crearlo
       let patientId = null;
 
-      const checkPatientResponse = await fetch(endpoints.patients.getByIdentification(patientData!.identificacion));
-
-      if (checkPatientResponse.ok) {
-        const existingPatientData = await checkPatientResponse.json();
-        if (existingPatientData.success) {
-          patientId = existingPatientData.data._id;
+      try {
+        const checkPatientResponse = await patientService.getByIdentification(patientData!.identificacion);
+        if (checkPatientResponse.data.success) {
+          patientId = checkPatientResponse.data.data._id;
         }
-      } else {
-        // Si no existe, crear el paciente
-        const createPatientResponse = await fetch(endpoints.patients.create, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(patientData),
-        });
-
-        const createdPatientData = await createPatientResponse.json();
-        if (createdPatientData.success) {
-          patientId = createdPatientData.data._id;
+      } catch (error: any) {
+        if (error.response?.status === 404) {
+          const createPatientResponse = await patientService.create(patientData);
+          if (createPatientResponse.data.success) {
+            patientId = createPatientResponse.data.data._id;
+          }
+        } else {
+          throw error;
         }
       }
 
-      // Crear la evaluación de triage
       if (patientId) {
-        const triageResponse = await fetch(endpoints.triage.create, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            patientId,
-            vitalSigns,
-            observaciones: ''
-          }),
+        const triageResponse = await triageService.create({
+          patientId,
+          vitalSigns,
+          observaciones: ''
         });
 
-        const triageData = await triageResponse.json();
-
-        if (triageData.success) {
-          // Save complete patient record to localStorage
+        if (triageResponse.data.success) {
           const completeRecord = {
             patientData,
             vitalSigns,
@@ -174,12 +156,11 @@ function Signos() {
           };
           localStorage.setItem('lastEvaluation', JSON.stringify(completeRecord));
 
-          // Navigate to results page after evaluation
           setTimeout(() => {
             navigate('/resultado');
           }, 2000);
         } else {
-          throw new Error(triageData.message || 'Error al crear la evaluación');
+          throw new Error(triageResponse.data.message || 'Error al crear la evaluación');
         }
       } else {
         throw new Error('No se pudo obtener o crear el paciente');
